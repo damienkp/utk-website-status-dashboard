@@ -80,7 +80,7 @@
     }
     .banner strong { display: block; }
     .banner ul { margin: .25rem 0 0; padding-left: 1.25rem; }
-    .banner.info { border-color: var(--ink); background: #FFF4D6; color: var(--ink); }
+    .banner.info { border: 1px solid var(--line); background: #FFF4D6; color: var(--ink); }
     [hidden] { display: none !important; }
 
     .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -116,7 +116,7 @@
       box-shadow: 0 0 0 7px #fff;
     }
 
-    .panel { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: .75rem; margin: 0; }
+    .panel { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: .75rem; margin: 0; }
     .stat {
       border: 1px solid var(--rule);
       border-left: 8px solid var(--orange);
@@ -125,8 +125,11 @@
     }
     .stat dt { color: var(--muted); font-size: 1rem; margin: 0; }
     .stat dd { font-size: 1.6rem; font-weight: 700; margin: .1rem 0 0; overflow-wrap: anywhere; }
-    .stat.status { border-left-width: 1px; text-align: center; }
-    .stat.status dd { font-size: 2rem; }
+    .stat.status { border: 3px solid currentColor; display: flex; align-items: center; justify-content: center; }
+    .stat.status dd { font-size: 2.4rem; line-height: 1.15; margin: 0; display: flex; align-items: center; gap: .6rem; }
+    #statusIcon { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 2.6rem; height: 2.6rem;
+      border: 3px solid currentColor; border-radius: 50%; font-size: 1.5rem; line-height: 1; }
+    .pill .ico { display: inline-block; width: 1em; margin-right: .3em; text-align: center; }
 
     .s-on   { background: var(--on-bg);   color: var(--on-ink); }
     .s-risk { background: var(--risk-bg); color: var(--risk-ink); }
@@ -149,12 +152,16 @@
     td.num, th.num { text-align: right; white-space: nowrap; }
     .pill { display: inline-block; font-weight: 700; border-radius: 6px; padding: .15rem .6rem; white-space: nowrap; }
     .check-bad { color: var(--error-ink); font-weight: 700; }
+    .check-ok { color: var(--on-ink); font-weight: 700; }
+    .nowrap { white-space: nowrap; }
+    th .reason { display: block; font-weight: 400; color: var(--muted); margin-top: .15rem; }
+    @media (min-width: 46.01rem) { #goalsBody th { width: 38%; min-width: 17rem; } }
+    .scroll:focus-visible { outline-offset: 2px; }
 
     .note { color: var(--muted); font-size: 1rem; margin: 1rem 0 0; }
     .cardhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .75rem; }
     .cardhead h2 { margin-bottom: 0; }
-    button.export { background: var(--orange); color: #000; border: 2px solid #000; }
-    button.export:hover { background: #FFA040; }
+    button.export { font-size: 1rem; padding: .4rem 1rem; }   /* secondary action: the status should be the loudest thing */
     button.export[disabled] { opacity: .6; cursor: progress; }
     .exportMsg { font-size: 1rem; margin: 0 0 .75rem; color: var(--muted); }
     .exportMsg.bad { color: var(--error-ink); font-weight: 700; }
@@ -192,7 +199,7 @@
     .msg ul, .msg ol { margin: .2rem 0 .45rem; padding-left: 1.2rem; }
     .msg.bot { align-self: flex-start; background: var(--card); border: 1px solid var(--rule); border-left: 6px solid var(--orange); }
     .msg.user { align-self: flex-end; background: var(--ink); color: #fff; }
-    .msg .who { display: block; font-size: .8rem; font-weight: 700; margin-bottom: .2rem; }
+    .msg .who { display: block; font-size: .9rem; font-weight: 700; margin-bottom: .2rem; }
     .msg.bot .who { color: var(--muted); }
     .msg button.goto { min-height: 44px; margin-top: .35rem; font-size: 1rem; padding: .35rem .8rem; }
     #helpChips { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: .4rem; padding: .6rem 1rem .5rem; border-top: 1px solid var(--rule); }
@@ -214,6 +221,20 @@
       .card { padding: 1rem; }
     }
     @media (max-width: 26rem) { .panel { grid-template-columns: 1fr; } }
+    @media (max-width: 46rem) {
+      /* Tables become one card per row, so nothing is hidden off-screen on a phone. */
+      table.stack, table.stack tbody, table.stack tr, table.stack th, table.stack td, table.stack caption { display: block; }
+      table.stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      table.stack tr { border: 1px solid var(--rule); border-left: 8px solid var(--orange); border-radius: 8px; padding: .7rem .85rem; margin-bottom: .75rem; }
+      table.stack th[scope="row"] { border: 0; padding: 0 0 .35rem; font-size: 1.15rem; }
+      table.stack td { border: 0; padding: .2rem 0; text-align: left; white-space: normal; }
+      table.stack td.num, table.stack td.nowrap { text-align: left; white-space: normal; }
+      table.stack td::before { content: attr(data-label) ": "; font-weight: 700; color: var(--muted); }
+      table.stack td:empty { display: none; }
+      table.stack td.statuscell::before { content: ""; }
+      table.stack td.statuscell { padding-bottom: .35rem; }
+      .stat.status dd { font-size: 2rem; }
+    }
     @media (prefers-reduced-motion: no-preference) { button { transition: background-color .15s ease; } }
   </style>
 </head>
@@ -263,7 +284,7 @@
       </div>
       <p class="exportMsg" id="msg-status" role="status"></p>
       <dl class="panel" aria-live="polite">
-        <div class="stat status" id="statusBox"><dt>Status</dt><dd id="status">&mdash;</dd></div>
+        <div class="stat status" id="statusBox"><dt class="sr">Status</dt><dd><span id="statusIcon" aria-hidden="true"></span><span id="status">&mdash;</span></dd></div>
         <div class="stat"><dt>Actual</dt><dd id="actual">&mdash;</dd></div>
         <div class="stat"><dt>Goal</dt><dd id="goal">&mdash;</dd></div>
         <div class="stat"><dt>Compared with goal</dt><dd id="vsgoal">&mdash;</dd></div>
@@ -283,14 +304,14 @@
         <button type="button" class="export" data-export="all" aria-describedby="msg-all">Export as PowerPoint</button>
       </div>
       <p class="exportMsg" id="msg-all" role="status"></p>
-      <div class="scroll">
-        <table>
+      <div class="scroll" tabindex="0" role="region" aria-labelledby="all-h">
+        <table class="stack" role="table">
           <caption id="allCaption"></caption>
-          <thead><tr>
-            <th scope="col">Metric</th><th scope="col">Status</th><th scope="col" class="num">Actual</th>
-            <th scope="col" class="num">Goal</th><th scope="col" class="num">Compared with goal</th><th scope="col">Tolerance band</th>
+          <thead role="rowgroup"><tr role="row">
+            <th scope="col" role="columnheader">Metric</th><th scope="col" role="columnheader">Status</th><th scope="col" role="columnheader" class="num">Actual</th>
+            <th scope="col" role="columnheader" class="num">Goal</th><th scope="col" role="columnheader" class="num">Compared with goal</th><th scope="col" role="columnheader">Tolerance band</th>
           </tr></thead>
-          <tbody id="allBody"></tbody>
+          <tbody id="allBody" role="rowgroup"></tbody>
         </table>
       </div>
       <p class="note">This dashboard reports whether each result meets the stated goal. It does not judge what counts as good
@@ -304,14 +325,14 @@
       </div>
       <p class="exportMsg" id="msg-goals" role="status"></p>
       <p class="hint">Goals cannot be changed here. Goal owners change them in the goals file.</p>
-      <div class="scroll">
-        <table>
-          <thead><tr>
-            <th scope="col">Metric</th><th scope="col">Basis</th><th scope="col">Direction</th><th scope="col" class="num">Target</th>
-            <th scope="col" class="num">Tolerance</th><th scope="col">Owner</th><th scope="col">Last reviewed</th>
-            <th scope="col">Reason</th><th scope="col">Check</th>
+      <div class="scroll" tabindex="0" role="region" aria-labelledby="goals-h">
+        <table class="stack" role="table">
+          <thead role="rowgroup"><tr role="row">
+            <th scope="col" role="columnheader">Metric and reason</th><th scope="col" role="columnheader">Basis</th><th scope="col" role="columnheader">Direction</th><th scope="col" role="columnheader" class="num">Target</th>
+            <th scope="col" role="columnheader" class="num">Tolerance</th><th scope="col" role="columnheader">Owner</th><th scope="col" role="columnheader" class="nowrap">Last reviewed</th>
+            <th scope="col" role="columnheader">Check</th>
           </tr></thead>
-          <tbody id="goalsBody"></tbody>
+          <tbody id="goalsBody" role="rowgroup"></tbody>
         </table>
       </div>
       <p class="note">For a Total goal, the target is per day and is multiplied by 7, 30 or 90. For an Average goal, the target is the rate or value itself.</p>
@@ -720,6 +741,18 @@ Average engagement time per session (sec),Average,Higher is better,70,5%,Seconds
       if (cls) e.className = cls;
       return e;
     }
+    function statusIcon(s) { return s === "On track" ? "\u2713" : s === "At risk" ? "!" : s === "Off track" ? "\u2715" : "\u2013"; }
+    function pill(status) {
+      var sp = el("span", null, "pill " + statusClass(status)), ic = el("span", statusIcon(status), "ico");
+      ic.setAttribute("aria-hidden", "true"); sp.appendChild(ic); sp.appendChild(document.createTextNode(status));
+      return sp;
+    }
+    function cellFor(tr, label, text, cls) {
+      var td = el("td", text, cls); td.setAttribute("data-label", label); td.setAttribute("role", "cell"); tr.appendChild(td); return td;
+    }
+    function rowHead(tr, text) {
+      var th = el("th", text); th.setAttribute("scope", "row"); th.setAttribute("role", "rowheader"); tr.setAttribute("role", "row"); tr.appendChild(th); return th;
+    }
     function statusClass(s) {
       return s === "On track" ? "s-on" : s === "At risk" ? "s-risk" : s === "Off track" ? "s-off" : "s-none";
     }
@@ -746,6 +779,7 @@ Average engagement time per session (sec),Average,Higher is better,70,5%,Seconds
       var sel = $("metric"), g = state.goals[sel.selectedIndex] || state.goals[0];
       var r = compute(g, n);
       $("status").textContent = r.status;
+      $("statusIcon").textContent = statusIcon(r.status);
       $("statusBox").className = "stat status " + statusClass(r.status);
       $("actual").textContent = r.actual === null ? "—" : fmt(r.actual, g.unit);
       $("goal").textContent = r.goal === null ? "—" : fmt(r.goal, g.unit);
@@ -760,24 +794,26 @@ Average engagement time per session (sec),Average,Higher is better,70,5%,Seconds
       var body = $("allBody"); body.textContent = "";
       state.goals.forEach(function (go) {
         var x = compute(go, n), tr = el("tr");
-        tr.appendChild(el("th", go.metric)).setAttribute("scope", "row");
-        var td = el("td"); td.appendChild(el("span", x.status, "pill " + statusClass(x.status))); tr.appendChild(td);
-        tr.appendChild(el("td", x.actual === null ? "" : fmt(x.actual, go.unit), "num"));
-        tr.appendChild(el("td", x.goal === null ? "" : fmt(x.goal, go.unit), "num"));
-        tr.appendChild(el("td", x.vs, "num"));
-        tr.appendChild(el("td", (x.band + " " + x.note).trim()));
+        rowHead(tr, go.metric);
+        cellFor(tr, "Status", null, "statuscell").appendChild(pill(x.status));
+        cellFor(tr, "Actual", x.actual === null ? "" : fmt(x.actual, go.unit), "num");
+        cellFor(tr, "Goal", x.goal === null ? "" : fmt(x.goal, go.unit), "num");
+        cellFor(tr, "Compared with goal", x.vs, "num");
+        cellFor(tr, "Tolerance band", (x.band + " " + x.note).trim());
         body.appendChild(tr);
       });
 
       var gb = $("goalsBody"); gb.textContent = "";
       state.goals.forEach(function (go) {
         var x = compute(go, n), tr = el("tr");
-        tr.appendChild(el("th", go.metric)).setAttribute("scope", "row");
-        tr.appendChild(el("td", go.basis)); tr.appendChild(el("td", go.direction));
-        tr.appendChild(el("td", x.target === null ? go.targetRaw : fmt(x.target, go.unit) + (norm(go.basis) === "total" ? " a day" : ""), "num"));
-        tr.appendChild(el("td", Math.round(x.tol * 1000) / 10 + "%", "num"));
-        tr.appendChild(el("td", go.owner)); tr.appendChild(el("td", go.reviewed)); tr.appendChild(el("td", go.reason));
-        tr.appendChild(el("td", x.check || "OK", x.check ? "check-bad" : ""));
+        var head = rowHead(tr, go.metric);
+        if (go.reason) head.appendChild(el("span", go.reason, "reason"));
+        cellFor(tr, "Basis", go.basis); cellFor(tr, "Direction", go.direction, "nowrap");
+        cellFor(tr, "Target", x.target === null ? go.targetRaw : fmt(x.target, go.unit) + (norm(go.basis) === "total" ? " a day" : ""), "num");
+        cellFor(tr, "Tolerance", Math.round(x.tol * 1000) / 10 + "%", "num");
+        var rev = parseDate(go.reviewed);
+        cellFor(tr, "Owner", go.owner); cellFor(tr, "Last reviewed", rev === null ? go.reviewed : fmtDay(rev), "nowrap");
+        cellFor(tr, "Check", x.check || "OK", x.check ? "check-bad" : "check-ok");
         gb.appendChild(tr);
       });
     }
