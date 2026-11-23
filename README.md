@@ -10,10 +10,11 @@ A single-page dashboard that shows whether website results meet the goals leader
 - To use your own, load a GA4 daily export (CSV) and a goals file (CSV) under "Load data and goals". Files are read in the browser only. Nothing is uploaded or saved.
 - Goals cannot be changed from the dashboard. Goal owners change them in the goals file.
 - If the data is incomplete or a goal is not filled in correctly, the dashboard gives no status and says what to fix.
+- Each section (Status, All approved metrics, Goals) has an **Export as PowerPoint** button that saves that section as a slide in the same design. The slide carries the "data as of" date and any warnings shown on the page.
 
 ## Files
 
-- `index.html` – the whole application (no dependencies)
+- `index.html` – the whole application. The PowerPoint export loads the open-source PptxGenJS library (version 3.12.0) from the jsDelivr CDN when a button is first used. Slides are built in the browser.
 - `sample-ga4-daily-export.csv` – example of the data file format
 - `sample-goals.csv` – example of the goals file format
 
