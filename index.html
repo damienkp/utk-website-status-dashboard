@@ -60,7 +60,7 @@
     .sub { color: var(--muted); margin: .5rem 0 0; }
     #asof { font-weight: 700; margin: .5rem 0 0; }
 
-    main { padding: 1.25rem 1rem 2rem; }
+    main { padding: 1.25rem 1rem 6rem; }   /* bottom space so the help button never covers content */
 
     .card {
       background: var(--card);
@@ -162,6 +162,49 @@
     .loadgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
     details summary { cursor: pointer; font-weight: 700; min-height: 44px; padding: .5rem 0; }
     ol, ul { padding-left: 1.4rem; }
+
+
+    /* ---------- help chat ---------- */
+    #helpBtn {
+      position: fixed; right: calc(1rem + env(safe-area-inset-right)); bottom: calc(1rem + env(safe-area-inset-bottom));
+      width: 60px; height: 60px; min-height: 60px; padding: 0; border-radius: 50%;
+      background: var(--orange); color: #000; border: 3px solid #000;
+      font-family: "Alegreya", Georgia, serif; font-size: 2rem; font-weight: 700; line-height: 1;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, .3); z-index: 20;
+    }
+    #helpBtn:hover { background: #FFA040; }
+    dialog#help {
+      position: fixed; inset: auto calc(1rem + env(safe-area-inset-right)) calc(1rem + env(safe-area-inset-bottom)) auto; margin: 0;
+      width: min(27rem, calc(100vw - 2rem)); height: min(38rem, calc(100vh - 2rem)); max-width: none; max-height: none;
+      padding: 0; border: 2px solid var(--ink); border-radius: 12px; background: var(--card); color: var(--ink);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, .35); overflow: hidden;
+    }
+    dialog#help[open] { display: flex; flex-direction: column; }
+    dialog#help::backdrop { background: rgba(0, 0, 0, .45); }
+    .helphead { display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+      padding: .75rem 1rem; border-top: 8px solid var(--orange); border-bottom: 1px solid var(--rule); }
+    .helphead h2 { margin: 0; font-size: 1.35rem; }
+    .helphead p { margin: 0; color: var(--muted); font-size: .95rem; }
+    #helpClose { min-width: 48px; padding: .4rem .8rem; }
+    #helpLog { flex: 1 1 auto; overflow-y: auto; padding: 1rem; background: var(--bg); display: flex; flex-direction: column; gap: .6rem; }
+    .msg { max-width: 92%; border-radius: 12px; padding: .6rem .85rem; font-size: 1rem; overflow-wrap: anywhere; }
+    .msg p { margin: 0 0 .45rem; } .msg p:last-child { margin-bottom: 0; }
+    .msg ul, .msg ol { margin: .2rem 0 .45rem; padding-left: 1.2rem; }
+    .msg.bot { align-self: flex-start; background: var(--card); border: 1px solid var(--rule); border-left: 6px solid var(--orange); }
+    .msg.user { align-self: flex-end; background: var(--ink); color: #fff; }
+    .msg .who { display: block; font-size: .8rem; font-weight: 700; margin-bottom: .2rem; }
+    .msg.bot .who { color: var(--muted); }
+    .msg button.goto { min-height: 44px; margin-top: .35rem; font-size: 1rem; padding: .35rem .8rem; }
+    #helpChips { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: .4rem; padding: .6rem 1rem .5rem; border-top: 1px solid var(--rule); }
+    #helpChips button { flex: 0 0 auto; white-space: nowrap; min-height: 44px; font-size: .95rem; font-weight: 400; padding: .3rem .7rem; border-width: 1px; border-radius: 22px; }
+    #helpForm { display: flex; gap: .5rem; padding: .25rem 1rem 1rem; }
+    #helpInput { flex: 1 1 auto; min-width: 0; min-height: 48px; font: inherit; font-size: 1.125rem; color: var(--ink);
+      background: #fff; border: 2px solid var(--line); border-radius: 8px; padding: .5rem .75rem; }
+    #helpForm button { background: var(--orange); color: #000; border: 2px solid #000; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    @media (max-width: 30rem) {
+      dialog#help { inset: auto 0 0 0; width: 100vw; height: min(92vh, 40rem); border-radius: 12px 12px 0 0; border-width: 2px 0 0; }
+    }
 
     @media (max-width: 46rem) {
       h1 { font-size: 1.65rem; }
@@ -332,6 +375,25 @@
     </section>
 
   </main>
+
+  <button type="button" id="helpBtn" aria-haspopup="dialog" aria-controls="help" aria-label="Open the help guide">?</button>
+
+  <dialog id="help" aria-labelledby="help-h">
+    <div class="helphead">
+      <div>
+        <h2 id="help-h">Help guide</h2>
+        <p>Ask how to use this dashboard.</p>
+      </div>
+      <button type="button" id="helpClose">Close</button>
+    </div>
+    <div id="helpLog" role="log" aria-live="polite" aria-label="Conversation" tabindex="0"></div>
+    <div id="helpChips" aria-label="Suggested questions"></div>
+    <form id="helpForm" autocomplete="off">
+      <label for="helpInput" class="sr">Your question</label>
+      <input type="text" id="helpInput" maxlength="200" placeholder="Type a question">
+      <button type="submit">Send</button>
+    </form>
+  </dialog>
 
   <script>
     var SAMPLE_DATA_CSV = `Date,Sessions,Key events,Engagement rate,Session key event rate,Bounce rate,Average engagement time per session (sec)
@@ -993,6 +1055,177 @@ Average engagement time per session (sec),Average,Higher is better,70,5%,Seconds
     Array.prototype.forEach.call(document.querySelectorAll("button.export"), function (b) {
       b.addEventListener("click", function () { exportSlide(b); });
     });
+
+
+    /* ---------- help guide ---------- */
+    // A scripted guide, not an AI model. It matches the question to prepared answers and can read what is on the page.
+    // Nothing typed here leaves the browser.
+    function current() {
+      var n = Number($("period").value), g = state.goals[$("metric").selectedIndex] || state.goals[0];
+      return { n: n, g: g, r: compute(g, n), label: $("period").selectedOptions[0].textContent.toLowerCase() };
+    }
+    function explainCurrent() {
+      var c = current(), r = c.r, out = [];
+      var head = c.g.metric + " for the " + c.label + " shows “" + r.status + "”.";
+      if (r.verdict) {
+        out.push(head + " The actual value is " + fmt(r.actual, c.g.unit) + " and the goal is " + fmt(r.goal, c.g.unit) + (r.vs === "At goal" ? ", so it is at goal." : ", which is " + r.vs + "."));
+        out.push(r.band);
+        out.push("This tells you whether the stated goal was met. It does not say why, or what to do next. That is for you and your team to decide.");
+      } else {
+        out.push(head + " A grey status means the dashboard will not give a verdict yet.");
+        if (r.status === "Incomplete data" || r.status === "No data") out.push(r.note || "There is no usable data for this period.");
+        else if (r.status === "Goal incomplete") out.push(r.check + " The goal owner fixes this in the goals file.");
+        else if (r.status === "No goal set") out.push("This metric has no usable target. " + r.check + " The goal owner adds it in the goals file.");
+        else if (r.status === "No data column") out.push("The goals file names this metric, but the data file has no column with the same name. The two names must match.");
+      }
+      var w = pageWarnings();
+      if (w.length) out.push("There is also a warning on the page: " + w.join(" "));
+      return out;
+    }
+    var TOPICS = [
+      { id: "start", chip: "How do I use this?", keys: ["how do i use", "get started", "start", "begin", "what is this", "what does this do", "overview", "instructions", "help", "how does it work", "how does this work"],
+        say: ["This dashboard shows whether website results meet the goals leadership has set.",
+          ["Choose a metric and a time period at the top.", "Read the status: On track, At risk or Off track.", "Check the “Data as of” date and any warning before you rely on it.", "Use “Export as PowerPoint” to save a section as a slide."],
+          "It opens with sample data. Ask me how to load your own files."], go: ["choose-h", "Go to the choices"] },
+      { id: "mine", chip: "Explain my current status", keys: ["my status", "current status", "explain my", "what am i looking at", "explain this", "this status", "why is it", "why is my", "why does it say", "what does my", "explain the result", "my result"], dynamic: explainCurrent },
+      { id: "load", chip: "How do I load my own data?", keys: ["load", "upload", "import", "my own data", "my data", "own files", "csv", "ga4", "export from", "add data", "new data", "refresh", "update the data", "weekly", "enter the export date", "where do i enter", "where do i put"],
+        say: ["To use your own numbers, go to “Load data and goals” near the bottom of the page.",
+          ["In GA4, export a daily report as a CSV: a Date column, then one column for each approved metric.", "Choose that file under “GA4 daily export”.", "Enter the export date.", "Choose your goals file under “Goals”."],
+          "The files are read in your browser only. Nothing is uploaded."], go: ["load-h", "Go to Load data and goals"] },
+      { id: "format", keys: ["format", "columns", "column", "header", "date format", "layout of the file", "what should the file", "template", "example file", "sample file"],
+        say: ["The data file needs one header row and one row per day. The first column must be named Date. Each other column is a metric.",
+          "Dates can be written as 2026-11-20, 20261120 or 11/20/2026. Rates can be written as 0.58 or 58%. Lines that start with # are skipped.",
+          "The goals file needs these columns: Metric, Basis, Direction, Target, Tolerance, Unit, Owner, Last reviewed, Reason.",
+          "You can download two sample files to copy under “Load data and goals”."], go: ["load-h", "Go to the sample files"] },
+      { id: "goals", chip: "How do I change a goal?", keys: ["change a goal", "change the goal", "edit goal", "edit a goal", "set a goal", "set goal", "new goal", "target", "targets", "goals file", "add a metric", "add metric", "remove a metric", "who sets"],
+        say: ["Goals cannot be changed on this page. That is on purpose, so a target cannot be edited during a review.",
+          "The goal owner changes the goals file and loads the new version under “Load data and goals”.",
+          "For a Total goal, write the target per day. The dashboard multiplies it by 7, 30 or 90. For an Average goal, write the rate or value itself, such as 60%."], go: ["goals-h", "Go to the Goals table"] },
+      { id: "status", chip: "What do the statuses mean?", keys: ["status mean", "statuses", "on track", "at risk", "off track", "colors", "colours", "green", "yellow", "red", "what does the status"],
+        say: ["There are three statuses.",
+          ["On track: the result meets the goal.", "At risk: the result misses the goal but is inside the tolerance band.", "Off track: the result is outside the tolerance band."],
+          "For most metrics higher is better. For some, such as bounce rate, lower is better, and the rule is reversed.",
+          "A grey status means the dashboard cannot give a verdict yet. Ask me about grey statuses."] },
+      { id: "grey", chip: "Why is a status grey?", keys: ["grey", "gray", "incomplete data", "incomplete", "no data", "no goal set", "goal incomplete", "no data column", "no status", "not showing", "blank", "missing"],
+        say: ["A grey status means something must be fixed before a verdict can be shown.",
+          ["Incomplete data: the period does not have one usable number for every day. Look for missing days, blanks, text or duplicate dates in the data file.", "No data: there are no usable numbers for this metric in the period.", "No goal set: the target is missing, not a number, or zero.", "Goal incomplete: the goal has a problem, such as a missing basis or a percent typed as 60 instead of 60%.", "No data column: the metric name in the goals file does not match a column in the data file."],
+          "The Check column in the Goals table says what to fix for each goal."], go: ["goals-h", "Go to the Check column"] },
+      { id: "warn", keys: ["warning", "warnings", "stale", "out of date", "old data", "how old", "fresh", "data as of", "export date", "exported"],
+        dynamic: function () {
+          var w = pageWarnings(), out = ["The line under the title shows the newest day in the data and the date it was exported from GA4."];
+          out.push(w.length ? "Right now the page shows this warning: " + w.join(" ") : "Right now there are no warnings on the page.");
+          out.push("The dashboard warns you when the export is more than 7 days old, when the export date is missing, and when recent days are missing from the file.");
+          return out;
+        } },
+      { id: "band", keys: ["tolerance", "band", "how close", "margin"],
+        say: ["The tolerance band is the gap a goal owner allows before a result counts as Off track.",
+          "For example, with a goal of 1,440 and a 10% tolerance, a result from 1,296 up to 1,440 is At risk. Below 1,296 it is Off track.",
+          "The line under the status cards spells out the exact limits for the metric you chose."] },
+      { id: "period", keys: ["time period", "period", "7 days", "30 days", "90 days", "week", "month", "quarter", "date range", "change metric", "choose a metric", "pick a metric", "select"],
+        say: ["Use the two lists at the top of the page: Metric and Time period.",
+          "The time period is the last 7, 30 or 90 days, and it ends on the newest day in the data, not on today’s date.",
+          "The same metric can show a different status over a different period. Agree with your team which period to use for each review."], go: ["choose-h", "Go to the choices"] },
+      { id: "basis", keys: ["total", "average", "basis", "direction", "lower is better", "higher is better", "bounce"],
+        say: ["Each goal has a basis and a direction.",
+          ["Total: the daily values are added up for the period. Used for counts such as sessions.", "Average: the daily values are averaged. Used for rates such as engagement rate.", "Higher is better: the result should be at or above the goal.", "Lower is better: the result should be at or below the goal. Bounce rate is an example."]] },
+      { id: "vs", keys: ["compared with goal", "below goal", "above goal", "percent of goal", "% below", "% above", "at goal", "compared"],
+        say: ["“Compared with goal” shows how far the result is from the goal, in plain words, such as “9% below goal”.",
+          "Read it together with the status. For a metric where lower is better, “3% below goal” is a good result."] },
+      { id: "chart", keys: ["chart", "trend", "graph", "line", "dashed", "dotted"],
+        say: ["The chart shows one point for each day in the period.",
+          "The solid orange line is the daily actual. The dashed black line is the daily goal.",
+          "The sentence under the chart gives the lowest and highest days in words."] },
+      { id: "ppt", chip: "How do I make a slide?", keys: ["powerpoint", "power point", "slide", "slides", "pptx", "ppt", "export", "presentation", "deck", "download"],
+        say: ["Each section has an “Export as PowerPoint” button: Status, All approved metrics, and Goals.",
+          ["Choose the metric and time period you want first.", "Select the button in that section.", "The slide is saved to your downloads folder."],
+          "The slide carries the “Data as of” date and any warning on the page. The first export needs an internet connection. Check the slide before you present it."], go: ["result-h", "Go to the Status section"] },
+      { id: "privacy", keys: ["privacy", "private", "safe", "secure", "security", "confidential", "where does my data go", "is my data", "stored", "saved", "sent", "share"],
+        say: ["Files you load are read in your browser only. They are not uploaded, saved or sent anywhere.",
+          "What you type in this help guide also stays in your browser.",
+          "The website itself is public, so do not save real data or real targets into its public repository. Slides you export are ordinary files, so share them with care."] },
+      { id: "sample", keys: ["sample", "demo", "example data", "fake", "made up", "reset", "start over", "go back"],
+        say: ["The dashboard opens with sample data and sample goals that are made up for demonstration. A banner at the top says so.",
+          "To return to the sample at any time, select “Go back to sample data” under “Load data and goals”."], go: ["load-h", "Go to Load data and goals"] },
+      { id: "decide", keys: ["what should i do", "what should we do", "is this good", "is that good", "is this bad", "good or bad", "recommend", "advice", "why did it drop", "why is it down", "why did it go", "fix my numbers", "improve"],
+        say: ["I can’t answer that, and neither can the dashboard. It reports whether a result meets the stated goal.",
+          "It does not explain why a number changed, judge whether the goal is the right one, or decide what to do. Those decisions belong to you and your team."] },
+      { id: "who", keys: ["are you ai", "are you an ai", "are you a bot", "are you real", "are you human", "who are you", "what are you", "chatgpt", "claude", "robot"],
+        say: ["I’m a scripted help guide, not an AI model. I match your question to a set of prepared answers about this dashboard.",
+          "I can also read what is on the page right now, so you can ask me to explain your current status."] },
+      { id: "hello", keys: ["hello", "hi", "hey", "good morning", "good afternoon"], say: ["Hello. Ask me how to use the dashboard, or pick one of the questions below."] },
+      { id: "thanks", keys: ["thanks", "thank you", "cheers", "great", "ok", "okay"], say: ["You’re welcome. Ask another question at any time."] }
+    ];
+    function escapeRe(t) { return t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+    function findTopic(q) {
+      var text = " " + String(q).toLowerCase().replace(/[‘’]/g, "'").replace(/[^a-z0-9%' ]+/g, " ").replace(/\s+/g, " ").trim() + " ";
+      var best = null, bestScore = 0;
+      TOPICS.forEach(function (t) {
+        var score = 0;
+        t.keys.forEach(function (k) {
+          if (new RegExp("(^|[^a-z0-9])" + escapeRe(k) + "s?([^a-z0-9]|$)").test(text)) score += k.split(" ").length * 2 + k.length / 20;
+        });
+        if (score > bestScore) { bestScore = score; best = t; }
+      });
+      return best;
+    }
+    function addMsg(who, parts, go) {
+      var log = $("helpLog"), box = el("div", null, "msg " + (who === "You" ? "user" : "bot"));
+      box.appendChild(el("span", who, "who"));
+      parts.forEach(function (part) {
+        if (Array.isArray(part)) { var ol = el("ol"); part.forEach(function (li) { ol.appendChild(el("li", li)); }); box.appendChild(ol); }
+        else if (part) box.appendChild(el("p", part));
+      });
+      if (go) {
+        var b = el("button", go[1], "goto"); b.type = "button";
+        b.addEventListener("click", function () {
+          var dlgEl = $("help"); dlgEl.keepFocus = true; dlgEl.close();
+          var target = $(go[0]);
+          target.setAttribute("tabindex", "-1"); target.scrollIntoView({ block: "start" }); target.focus({ preventScroll: true });
+        });
+        box.appendChild(b);
+      }
+      log.appendChild(box);
+      box.scrollIntoView({ block: "nearest" });
+      log.scrollTop = log.scrollHeight;
+    }
+    function answer(q) {
+      var t = findTopic(q);
+      if (!t) {
+        addMsg("Help guide", ["I don’t have an answer for that. I can only help with using this dashboard.",
+          "Try one of the questions below, or ask about loading data, goals, statuses, warnings, time periods, the chart, or PowerPoint slides."]);
+        return;
+      }
+      addMsg("Help guide", t.dynamic ? t.dynamic() : t.say, t.go);
+    }
+    function ask(q) {
+      q = String(q).trim();
+      if (!q) return;
+      addMsg("You", [q]);
+      answer(q);
+    }
+    (function () {
+      var dlg = $("help"), chips = $("helpChips"), opened = false;
+      TOPICS.filter(function (t) { return t.chip; }).forEach(function (t) {
+        var b = el("button", t.chip); b.type = "button";
+        b.addEventListener("click", function () { ask(t.chip); $("helpInput").focus(); });
+        chips.appendChild(b);
+      });
+      $("helpBtn").addEventListener("click", function () {
+        if (!opened) {
+          addMsg("Help guide", ["Hello. I can explain how to use this dashboard.", "I’m a scripted guide, not an AI model, so I only know about this page. Pick a question below or type your own."]);
+          opened = true;
+        }
+        if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+        $("helpInput").focus();
+      });
+      $("helpClose").addEventListener("click", function () { if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); });
+      dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });   // click on the backdrop closes
+      dlg.addEventListener("close", function () { if (dlg.keepFocus) { dlg.keepFocus = false; return; } $("helpBtn").focus(); });
+      $("helpForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var input = $("helpInput"); ask(input.value); input.value = ""; input.focus();
+      });
+    })();
 
     $("metric").addEventListener("change", render);
     $("period").addEventListener("change", render);

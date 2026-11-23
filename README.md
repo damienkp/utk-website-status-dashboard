@@ -11,6 +11,7 @@ A single-page dashboard that shows whether website results meet the goals leader
 - Goals cannot be changed from the dashboard. Goal owners change them in the goals file.
 - If the data is incomplete or a goal is not filled in correctly, the dashboard gives no status and says what to fix.
 - Each section (Status, All approved metrics, Goals) has an **Export as PowerPoint** button that saves that section as a slide in the same design. The slide carries the "data as of" date and any warnings shown on the page.
+- A help guide opens from the question-mark button in the lower right corner. It is a scripted guide, not an AI model: it matches questions to prepared answers about using the dashboard, and can explain the status currently on screen. Nothing typed into it leaves the browser.
 
 ## Files
 
