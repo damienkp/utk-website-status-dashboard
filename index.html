@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Website Performance Status Dashboard</title>
+  <style>
+    /* Palette: UT Knoxville Tennessee Orange (#FF8200) and Smokey (#58595B family),
+       adjusted where needed so every text pairing meets WCAG AAA (7:1). */
+    :root {
+      --orange: #FF8200;
+      --ink: #1A1A1A;
+      --muted: #4A4B4D;
+      --bg: #F4F4F4;
+      --card: #FFFFFF;
+      --line: #6B6C6E;
+      --rule: #D0D0D0;
+      --error-bg: #FDECEA;
+      --error-ink: #5A0010;
+      --error-line: #B00020;
+      --focus: #1A1A1A;
+      --on-bg: #C6EFCE;   --on-ink: #06400F;
+      --risk-bg: #FFE08A; --risk-ink: #4A3000;
+      --off-bg: #F4B6B6;  --off-ink: #5A0010;
+      --none-bg: #D9D9D9; --none-ink: #1A1A1A;
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Alright Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                   "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 1.125rem;
+      line-height: 1.5;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    header {
+      background: var(--card);
+      border-top: 10px solid var(--orange);
+      border-bottom: 1px solid var(--rule);
+      padding: 1.25rem 1rem;
+    }
+    .wrap { max-width: 60rem; margin: 0 auto; }
+
+    h1, h2, h3 {
+      font-family: "Alegreya", Georgia, "Times New Roman", serif;
+      line-height: 1.2;
+      margin: 0;
+    }
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.5rem; margin-bottom: .75rem; }
+    h3 { font-size: 1.2rem; margin: 1.25rem 0 .4rem; }
+    .sub { color: var(--muted); margin: .5rem 0 0; }
+    #asof { font-weight: 700; margin: .5rem 0 0; }
+
+    main { padding: 1.25rem 1rem 2rem; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .banner {
+      border: 3px solid var(--error-line);
+      background: var(--error-bg);
+      color: var(--error-ink);
+      border-radius: 8px;
+      padding: .9rem 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .banner strong { display: block; }
+    .banner ul { margin: .25rem 0 0; padding-left: 1.25rem; }
+    .banner.info { border-color: var(--ink); background: #FFF4D6; color: var(--ink); }
+    [hidden] { display: none !important; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    label { display: block; font-weight: 700; margin-bottom: .25rem; }
+    .hint { display: block; color: var(--muted); font-size: 1rem; margin-bottom: .35rem; }
+
+    select, input[type="date"], input[type="file"] {
+      width: 100%;
+      min-height: 48px;
+      font: inherit;
+      font-size: 1.125rem;
+      color: var(--ink);
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      padding: .5rem .75rem;
+    }
+
+    button {
+      min-height: 48px;
+      font: inherit;
+      font-weight: 700;
+      border-radius: 8px;
+      padding: .6rem 1.25rem;
+      cursor: pointer;
+      background: #fff; color: var(--ink); border: 2px solid var(--ink);
+    }
+    button:hover { background: #EDEDED; }
+
+    :focus-visible {
+      outline: 4px solid var(--focus);
+      outline-offset: 3px;
+      box-shadow: 0 0 0 7px #fff;
+    }
+
+    .panel { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: .75rem; margin: 0; }
+    .stat {
+      border: 1px solid var(--rule);
+      border-left: 8px solid var(--orange);
+      border-radius: 8px;
+      padding: .75rem 1rem;
+    }
+    .stat dt { color: var(--muted); font-size: 1rem; margin: 0; }
+    .stat dd { font-size: 1.6rem; font-weight: 700; margin: .1rem 0 0; overflow-wrap: anywhere; }
+    .stat.status { border-left-width: 1px; text-align: center; }
+    .stat.status dd { font-size: 2rem; }
+
+    .s-on   { background: var(--on-bg);   color: var(--on-ink); }
+    .s-risk { background: var(--risk-bg); color: var(--risk-ink); }
+    .s-off  { background: var(--off-bg);  color: var(--off-ink); }
+    .s-none { background: var(--none-bg); color: var(--none-ink); }
+    .stat.status.s-on dt, .stat.status.s-risk dt, .stat.status.s-off dt, .stat.status.s-none dt { color: inherit; }
+
+    .band { margin: 1rem 0 0; }
+    .basis { color: var(--muted); margin: .25rem 0 0; }
+    .problem { color: var(--error-ink); font-weight: 700; margin: .5rem 0 0; }
+
+    #chart { width: 100%; height: auto; display: block; border: 1px solid var(--rule); border-radius: 8px; background: #fff; }
+    .legend { color: var(--muted); font-size: 1rem; margin: .5rem 0 0; }
+
+    .scroll { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 1rem; }
+    caption { text-align: left; color: var(--muted); padding-bottom: .5rem; }
+    th, td { text-align: left; padding: .55rem .6rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    thead th { background: var(--ink); color: #fff; }
+    td.num, th.num { text-align: right; white-space: nowrap; }
+    .pill { display: inline-block; font-weight: 700; border-radius: 6px; padding: .15rem .6rem; white-space: nowrap; }
+    .check-bad { color: var(--error-ink); font-weight: 700; }
+
+    .note { color: var(--muted); font-size: 1rem; margin: 1rem 0 0; }
+    .loadgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    details summary { cursor: pointer; font-weight: 700; min-height: 44px; padding: .5rem 0; }
+    ol, ul { padding-left: 1.4rem; }
+
+    @media (max-width: 46rem) {
+      h1 { font-size: 1.65rem; }
+      .controls, .loadgrid { grid-template-columns: 1fr; }
+      .panel { grid-template-columns: 1fr 1fr; }
+      .stat.status { grid-column: 1 / -1; }
+      .card { padding: 1rem; }
+    }
+    @media (max-width: 26rem) { .panel { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: no-preference) { button { transition: background-color .15s ease; } }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="wrap">
+      <h1>Website Performance Status Dashboard</h1>
+      <p class="sub">Shows whether website results meet the goals leadership has set.</p>
+      <p id="asof"></p>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <div id="sampleBanner" class="banner info" hidden>
+      <strong id="sampleTitle">You are viewing sample data.</strong>
+      <span id="sampleText">The sample values are made up for demonstration. Load your own files under &ldquo;Load data and goals&rdquo; below.</span>
+    </div>
+
+    <div id="warnings" class="banner" role="alert" hidden></div>
+
+    <section class="card" aria-labelledby="choose-h">
+      <h2 id="choose-h">Choose what to check</h2>
+      <div class="controls">
+        <div>
+          <label for="metric">Metric</label>
+          <span class="hint" id="metric-hint">Approved metrics from the goals file.</span>
+          <select id="metric" aria-describedby="metric-hint"></select>
+        </div>
+        <div>
+          <label for="period">Time period</label>
+          <span class="hint" id="period-hint">Ends on the newest day in the data.</span>
+          <select id="period" aria-describedby="period-hint">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="result-h">
+      <h2 id="result-h">Status</h2>
+      <dl class="panel" aria-live="polite">
+        <div class="stat status" id="statusBox"><dt>Status</dt><dd id="status">&mdash;</dd></div>
+        <div class="stat"><dt>Actual</dt><dd id="actual">&mdash;</dd></div>
+        <div class="stat"><dt>Goal</dt><dd id="goal">&mdash;</dd></div>
+        <div class="stat"><dt>Compared with goal</dt><dd id="vsgoal">&mdash;</dd></div>
+      </dl>
+      <p class="band" id="band"></p>
+      <p class="basis" id="basis"></p>
+      <p class="problem" id="problem" hidden></p>
+
+      <h3 id="trend-h">Daily trend</h3>
+      <svg id="chart" viewBox="0 0 800 300" role="img" aria-labelledby="trend-h chartDesc"></svg>
+      <p class="legend" id="chartDesc"></p>
+    </section>
+
+    <section class="card" aria-labelledby="all-h">
+      <h2 id="all-h">All approved metrics</h2>
+      <div class="scroll">
+        <table>
+          <caption id="allCaption"></caption>
+          <thead><tr>
+            <th scope="col">Metric</th><th scope="col">Status</th><th scope="col" class="num">Actual</th>
+            <th scope="col" class="num">Goal</th><th scope="col" class="num">Compared with goal</th><th scope="col">Tolerance band</th>
+          </tr></thead>
+          <tbody id="allBody"></tbody>
+        </table>
+      </div>
+      <p class="note">This dashboard reports whether each result meets the stated goal. It does not judge what counts as good
+        performance, explain why a result changed, or decide what to do next. Those decisions belong to people.</p>
+    </section>
+
+    <section class="card" aria-labelledby="goals-h">
+      <h2 id="goals-h">Goals</h2>
+      <p class="hint">Goals cannot be changed here. Goal owners change them in the goals file.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr>
+            <th scope="col">Metric</th><th scope="col">Basis</th><th scope="col">Direction</th><th scope="col" class="num">Target</th>
+            <th scope="col" class="num">Tolerance</th><th scope="col">Owner</th><th scope="col">Last reviewed</th>
+            <th scope="col">Reason</th><th scope="col">Check</th>
+          </tr></thead>
+          <tbody id="goalsBody"></tbody>
+        </table>
+      </div>
+      <p class="note">For a Total goal, the target is per day and is multiplied by 7, 30 or 90. For an Average goal, the target is the rate or value itself.</p>
+    </section>
+
+    <section class="card" aria-labelledby="load-h">
+      <h2 id="load-h">Load data and goals</h2>
+      <p class="hint">Files are read in your browser only. Nothing is uploaded or saved.</p>
+      <div id="loadError" class="banner" role="alert" hidden></div>
+      <div class="loadgrid">
+        <div>
+          <label for="dataFile">GA4 daily export (CSV)</label>
+          <span class="hint" id="data-hint">A Date column, then one column per metric.</span>
+          <input type="file" id="dataFile" accept=".csv,text/csv" aria-describedby="data-hint">
+        </div>
+        <div>
+          <label for="exportDate">Export date</label>
+          <span class="hint" id="export-hint">The day the report was exported from GA4.</span>
+          <input type="date" id="exportDate" aria-describedby="export-hint">
+        </div>
+        <div>
+          <label for="goalsFile">Goals (CSV)</label>
+          <span class="hint" id="goals-hint">One row per approved metric.</span>
+          <input type="file" id="goalsFile" accept=".csv,text/csv" aria-describedby="goals-hint">
+        </div>
+      </div>
+      <button type="button" id="resetBtn">Go back to sample data</button>
+      <p class="note">Sample files to copy:
+        <a href="sample-ga4-daily-export.csv" download>sample-ga4-daily-export.csv</a> and
+        <a href="sample-goals.csv" download>sample-goals.csv</a>.</p>
+
+      <details>
+        <summary>How to prepare the files</summary>
+        <h3>Data file (analyst, weekly)</h3>
+        <ol>
+          <li>In GA4, export the same daily report each week as a CSV: a Date column plus the approved metric columns.</li>
+          <li>Keep one header row and one row per day. Remove total and summary lines. Lines that start with # are skipped automatically.</li>
+          <li>Dates can be written as 2026-11-20, 20261120 or 11/20/2026. Rates can be written as 0.58 or 58%.</li>
+          <li>Load the file here and enter the export date.</li>
+        </ol>
+        <h3>Goals file (goal owners)</h3>
+        <ul>
+          <li>Columns: Metric, Basis, Direction, Target, Tolerance, Unit, Owner, Last reviewed, Reason.</li>
+          <li>Metric must match a column header in the data file.</li>
+          <li>Basis is Total or Average. Direction is &ldquo;Higher is better&rdquo; or &ldquo;Lower is better&rdquo;.</li>
+          <li>Unit is Number, Percent or Seconds. Write percent targets as 60% or 0.6, and the tolerance as 5% or 0.05.</li>
+        </ul>
+        <h3>Status rules</h3>
+        <ul>
+          <li>Higher is better: On track at or above the goal. At risk inside the tolerance band below it. Otherwise Off track.</li>
+          <li>Lower is better: On track at or below the goal. At risk inside the tolerance band above it. Otherwise Off track.</li>
+          <li>A grey status means something must be fixed first. No verdict is shown unless every day in the period has one usable value and the goal is complete.</li>
+        </ul>
+        <h3>Known limits</h3>
+        <ul>
+          <li>The refresh is manual, so data can be out of date between exports. GA4 data can take a day or more to finalize.</li>
+          <li>Average goals use a simple average of the daily values, which can differ slightly from the period rate GA4 reports.</li>
+          <li>The dashboard checks that entries are complete. It cannot tell whether a target or an exported number is the right one.</li>
+        </ul>
+      </details>
+    </section>
+
+  </main>
+
+  <script>
+    var SAMPLE_DATA_CSV = `Date,Sessions,Key events,Engagement rate,Session key event rate,Bounce rate,Average engagement time per session (sec)
+2026-07-24,1708,57,0.5836,0.0334,0.4164,69.4
+2026-07-25,1120,36,0.5829,0.0321,0.4171,70.7
+2026-07-26,1007,33,0.564,0.0328,0.436,77.9
+2026-07-27,1559,51,0.5976,0.0327,0.4024,75.3
+2026-07-28,1633,51,0.5699,0.0312,0.4301,79.6
+2026-07-29,1656,57,0.5775,0.0344,0.4225,74.0
+2026-07-30,1700,59,0.5731,0.0347,0.4269,72.5
+2026-07-31,1735,59,0.5973,0.034,0.4027,77.5
+2026-08-01,1128,31,0.608,0.0275,0.392,73.8
+2026-08-02,1193,38,0.5961,0.0319,0.4039,76.9
+2026-08-03,1825,54,0.6023,0.0296,0.3977,83.3
+2026-08-04,1806,52,0.603,0.0288,0.397,75.3
+2026-08-05,1889,64,0.5822,0.0339,0.4178,77.1
+2026-08-06,1664,58,0.6214,0.0349,0.3786,83.8
+2026-08-07,1719,47,0.591,0.0273,0.409,79.2
+2026-08-08,1178,42,0.5875,0.0357,0.4125,81.8
+2026-08-09,1063,36,0.621,0.0339,0.379,78.2
+2026-08-10,1826,51,0.6154,0.0279,0.3846,77.5
+2026-08-11,1688,60,0.6158,0.0355,0.3842,75.6
+2026-08-12,1875,65,0.6111,0.0347,0.3889,78.2
+2026-08-13,1817,63,0.5999,0.0347,0.4001,79.4
+2026-08-14,1811,52,0.5858,0.0287,0.4142,75.8
+2026-08-15,1086,35,0.5918,0.0322,0.4082,82.2
+2026-08-16,1028,29,0.6016,0.0282,0.3984,75.5
+2026-08-17,1773,52,0.6063,0.0293,0.3937,81.8
+2026-08-18,1558,53,0.597,0.034,0.403,80.0
+2026-08-19,1573,54,0.6045,0.0343,0.3955,79.5
+2026-08-20,1520,50,0.594,0.0329,0.406,82.4
+2026-08-21,1613,56,0.6106,0.0347,0.3894,79.8
+2026-08-22,1076,29,0.6021,0.027,0.3979,75.8
+2026-08-23,997,31,0.58,0.0311,0.42,79.7
+2026-08-24,1544,45,0.6077,0.0291,0.3923,77.8
+2026-08-25,1667,51,0.6138,0.0306,0.3862,72.6
+2026-08-26,1537,51,0.6065,0.0332,0.3935,70.9
+2026-08-27,1551,45,0.5914,0.029,0.4086,71.4
+2026-08-28,1477,42,0.592,0.0284,0.408,76.9
+2026-08-29,1048,35,0.608,0.0334,0.392,75.1
+2026-08-30,893,27,0.5745,0.0302,0.4255,71.4
+2026-08-31,1538,51,0.5787,0.0332,0.4213,74.3
+2026-09-01,1543,51,0.5784,0.0331,0.4216,71.3
+2026-09-02,1378,44,0.6085,0.0319,0.3915,70.4
+2026-09-03,1454,42,0.596,0.0289,0.404,67.0
+2026-09-04,1427,50,0.5865,0.035,0.4135,70.7
+2026-09-05,971,30,0.584,0.0309,0.416,66.3
+2026-09-06,883,25,0.5614,0.0283,0.4386,67.1
+2026-09-07,1489,54,0.573,0.0363,0.427,67.6
+2026-09-08,1362,41,0.58,0.0301,0.42,71.8
+2026-09-09,1379,38,0.6033,0.0276,0.3967,70.3
+2026-09-10,1538,52,0.5835,0.0338,0.4165,69.6
+2026-09-11,1511,53,0.5911,0.0351,0.4089,66.9
+2026-09-12,965,34,0.5745,0.0352,0.4255,65.0
+2026-09-13,921,31,0.5782,0.0337,0.4218,66.9
+2026-09-14,1584,57,0.5792,0.036,0.4208,70.6
+2026-09-15,1626,57,0.5527,0.0351,0.4473,63.3
+2026-09-16,1498,50,0.5898,0.0334,0.4102,68.1
+2026-09-17,1530,53,0.547,0.0346,0.453,68.1
+2026-09-18,1514,49,0.5684,0.0324,0.4316,71.8
+2026-09-19,1071,29,0.5737,0.0271,0.4263,67.1
+2026-09-20,1016,33,0.5712,0.0325,0.4288,66.0
+2026-09-21,1615,45,0.5816,0.0279,0.4184,65.7
+2026-09-22,1557,52,0.5602,0.0334,0.4398,65.0
+2026-09-23,1608,58,0.5871,0.0361,0.4129,65.7
+2026-09-24,1757,57,0.5555,0.0324,0.4445,67.8
+2026-09-25,1727,59,0.5746,0.0342,0.4254,74.6
+2026-09-26,1179,40,0.5829,0.0339,0.4171,73.7
+2026-09-27,1201,40,0.5485,0.0333,0.4515,70.9
+2026-09-28,1651,49,0.5648,0.0297,0.4352,75.1
+2026-09-29,1700,58,0.5675,0.0341,0.4325,68.5
+2026-09-30,1733,58,0.5732,0.0335,0.4268,69.0
+2026-10-01,1825,53,0.5594,0.029,0.4406,75.2
+2026-10-02,1814,51,0.5609,0.0281,0.4391,72.1
+2026-10-03,1172,41,0.5757,0.035,0.4243,78.6
+2026-10-04,1234,40,0.5487,0.0324,0.4513,80.4
+2026-10-05,1833,64,0.5478,0.0349,0.4522,72.8
+2026-10-06,1713,49,0.5626,0.0286,0.4374,71.9
+2026-10-07,1810,57,0.5631,0.0315,0.4369,77.6
+2026-10-08,1698,54,0.5684,0.0318,0.4316,75.0
+2026-10-09,1841,58,0.5956,0.0315,0.4044,78.3
+2026-10-10,1091,32,0.5656,0.0293,0.4344,78.2
+2026-10-11,1193,41,0.5606,0.0344,0.4394,82.5
+2026-10-12,1837,53,0.5868,0.0289,0.4132,76.1
+2026-10-13,1569,54,0.5507,0.0344,0.4493,75.5
+2026-10-14,1606,55,0.5541,0.0342,0.4459,78.8
+2026-10-15,1680,50,0.5849,0.0298,0.4151,84.2
+2026-10-16,1739,50,0.5976,0.0288,0.4024,84.1
+2026-10-17,1020,31,0.5604,0.0304,0.4396,75.8
+2026-10-18,1087,32,0.5872,0.0294,0.4128,76.0
+2026-10-19,1625,47,0.5683,0.0289,0.4317,84.1
+2026-10-20,1655,50,0.5605,0.0302,0.4395,78.1
+2026-10-21,1522,47,0.5899,0.0309,0.4101,78.1
+2026-10-22,1640,51,0.6123,0.0311,0.3877,81.6
+2026-10-23,1433,47,0.5877,0.0328,0.4123,75.9
+2026-10-24,958,26,0.6102,0.0271,0.3898,79.7
+2026-10-25,1017,36,0.6114,0.0354,0.3886,77.2
+2026-10-26,1501,50,0.5723,0.0333,0.4277,77.8
+2026-10-27,1489,53,0.5967,0.0356,0.4033,79.0
+2026-10-28,1503,45,0.5975,0.0299,0.4025,81.8
+2026-10-29,1478,45,0.5991,0.0304,0.4009,74.4
+2026-10-30,1508,45,0.5881,0.0298,0.4119,80.2
+2026-10-31,888,27,0.6214,0.0304,0.3786,71.7
+2026-11-01,1014,28,0.5874,0.0276,0.4126,79.2
+2026-11-02,1441,45,0.6005,0.0312,0.3995,72.1
+2026-11-03,1531,49,0.6224,0.032,0.3776,76.6
+2026-11-04,1432,39,0.6101,0.0272,0.3899,69.9
+2026-11-05,1573,48,0.5801,0.0305,0.4199,71.8
+2026-11-06,1420,44,0.6208,0.031,0.3792,76.6
+2026-11-07,928,31,0.6243,0.0334,0.3757,71.1
+2026-11-08,982,31,0.5848,0.0316,0.4152,67.8
+2026-11-09,1483,45,0.5971,0.0303,0.4029,74.1
+2026-11-10,1529,53,0.5906,0.0347,0.4094,71.4
+2026-11-11,1523,53,0.5987,0.0348,0.4013,72.2
+2026-11-12,1488,49,0.6008,0.0329,0.3992,70.9
+2026-11-13,1721,49,0.5832,0.0285,0.4168,66.2
+2026-11-14,977,33,0.6103,0.0338,0.3897,70.6
+2026-11-15,1052,29,0.6207,0.0276,0.3793,71.0
+2026-11-16,1781,50,0.6002,0.0281,0.3998,64.7
+2026-11-17,1723,58,0.5892,0.0337,0.4108,69.4
+2026-11-18,1807,53,0.6153,0.0293,0.3847,66.1
+2026-11-19,1773,52,0.6199,0.0293,0.3801,71.9
+2026-11-20,1586,45,0.6171,0.0284,0.3829,70.0`;
+    var SAMPLE_GOALS_CSV = `Metric,Basis,Direction,Target,Tolerance,Unit,Owner,Last reviewed,Reason
+Sessions,Total,Higher is better,1400,5%,Number,Digital Marketing Director,2026-10-01,"Sample: business plan assumes 42,000 sessions a month."
+Key events,Total,Higher is better,48,10%,Number,Head of Sales,2026-10-01,"Sample: lead pipeline needs about 1,440 form completions a month."
+Engagement rate,Average,Higher is better,60%,5%,Percent,Content Lead,2026-10-01,Sample: content strategy goal for engaged visits.
+Session key event rate,Average,Higher is better,3.6%,10%,Percent,Head of Sales,2026-10-01,Sample: conversion rate needed to hit lead goal at planned traffic.
+Bounce rate,Average,Lower is better,40%,5%,Percent,Content Lead,2026-10-01,Sample: keep single-page exits under 40%.
+Average engagement time per session (sec),Average,Higher is better,70,5%,Seconds,Content Lead,2026-10-01,Sample: visitors should spend over a minute with content.`;
+
+    var DAY = 86400000;
+    var state = { data: null, goals: [], exportDay: null, sampleData: true, sampleGoals: true };
+
+    /* ---------- parsing ---------- */
+    function parseCSV(text) {
+      text = String(text).replace(/^﻿/, "");
+      var rows = [], row = [], cell = "", q = false;
+      for (var i = 0; i < text.length; i++) {
+        var c = text[i];
+        if (q) {
+          if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+          else cell += c;
+        } else if (c === '"') q = true;
+        else if (c === ",") { row.push(cell); cell = ""; }
+        else if (c === "\n" || c === "\r") {
+          if (c === "\r" && text[i + 1] === "\n") i++;
+          row.push(cell); rows.push(row); row = []; cell = "";
+        } else cell += c;
+      }
+      if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+      return rows.filter(function (r) {
+        var joined = r.join("").trim();
+        return joined !== "" && r[0].trim().charAt(0) !== "#";
+      });
+    }
+
+    function dayNumber(y, m, d) {
+      var t = Date.UTC(y, m - 1, d), dt = new Date(t);
+      if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+      return Math.round(t / DAY);
+    }
+    function parseDate(s) {
+      s = String(s == null ? "" : s).trim();
+      var m;
+      if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s))) return dayNumber(+m[1], +m[2], +m[3]);
+      if ((m = /^(\d{4})(\d{2})(\d{2})$/.exec(s))) return dayNumber(+m[1], +m[2], +m[3]);
+      if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s))) return dayNumber(+m[3], +m[1], +m[2]);
+      return null;
+    }
+    function parseNum(s) {
+      s = String(s == null ? "" : s).trim().replace(/,/g, "");
+      if (s === "") return null;
+      var pct = /%$/.test(s);
+      if (pct) s = s.slice(0, -1).trim();
+      if (s === "" || !/^-?(\d+\.?\d*|\.\d+)$/.test(s)) return null;
+      var n = Number(s);
+      return isFinite(n) ? (pct ? n / 100 : n) : null;
+    }
+    function norm(s) { return String(s == null ? "" : s).trim().toLowerCase(); }
+    function todayDay() { var n = new Date(); return dayNumber(n.getFullYear(), n.getMonth() + 1, n.getDate()); }
+
+    function readData(text) {
+      var rows = parseCSV(text);
+      if (rows.length < 2) throw new Error("The data file has no rows of data.");
+      var headers = rows[0].map(function (h) { return h.trim(); });
+      if (norm(headers[0]) !== "date") throw new Error("The first column of the data file must be named Date.");
+      if (headers.length < 2) throw new Error("The data file needs at least one metric column after Date.");
+      var out = [], bad = 0;
+      for (var i = 1; i < rows.length; i++) {
+        var day = parseDate(rows[i][0]);
+        if (day === null) { bad++; continue; }
+        out.push({ day: day, cells: rows[i] });
+      }
+      if (!out.length) throw new Error("No row in the data file has a date the dashboard can read. Use dates like 2026-11-20.");
+      return { headers: headers, rows: out, badDates: bad };
+    }
+
+    function readGoals(text) {
+      var rows = parseCSV(text);
+      if (rows.length < 2) throw new Error("The goals file has no goals in it.");
+      var head = rows[0].map(norm), idx = {};
+      ["metric", "basis", "direction", "target", "tolerance", "unit", "owner", "last reviewed", "reason"].forEach(function (k) {
+        idx[k] = head.indexOf(k);
+      });
+      ["metric", "basis", "direction", "target"].forEach(function (k) {
+        if (idx[k] < 0) throw new Error("The goals file is missing a column named " + k.charAt(0).toUpperCase() + k.slice(1) + ".");
+      });
+      function get(r, k) { return idx[k] < 0 ? "" : String(r[idx[k]] == null ? "" : r[idx[k]]).trim(); }
+      var goals = rows.slice(1).map(function (r) {
+        return { metric: get(r, "metric"), basis: get(r, "basis"), direction: get(r, "direction"),
+                 targetRaw: get(r, "target"), toleranceRaw: get(r, "tolerance"), unit: get(r, "unit") || "Number",
+                 owner: get(r, "owner"), reviewed: get(r, "last reviewed"), reason: get(r, "reason") };
+      }).filter(function (g) { return g.metric !== ""; });
+      if (!goals.length) throw new Error("The goals file has no goals in it.");
+      return goals;
+    }
+
+    /* ---------- calculation ---------- */
+    function fmt(x, unit) {
+      if (x === null || x === undefined) return "";
+      var u = norm(unit);
+      if (u === "percent") return (x * 100).toFixed(1) + "%";
+      if (u === "seconds") return x.toFixed(1) + " sec";
+      return Math.round(x).toLocaleString("en-US");
+    }
+    function fmtDay(day) {
+      return new Date(day * DAY).toLocaleDateString("en-US", { timeZone: "UTC", year: "numeric", month: "long", day: "numeric" });
+    }
+    function shortDay(day) {
+      return new Date(day * DAY).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+    }
+    function latestDay() {
+      return state.data.rows.reduce(function (m, r) { return Math.max(m, r.day); }, -Infinity);
+    }
+
+    function compute(g, n) {
+      var d = state.data, end = latestDay(), start = end - n + 1;
+      var col = -1;
+      for (var i = 1; i < d.headers.length; i++) if (norm(d.headers[i]) === norm(g.metric)) { col = i; break; }
+      var basis = norm(g.basis), dir = norm(g.direction);
+      var target = parseNum(g.targetRaw), tol = parseNum(g.toleranceRaw);
+      if (tol === null) tol = 0;
+      var dupes = state.goals.filter(function (o) { return norm(o.metric) === norm(g.metric); }).length;
+
+      var check = "";
+      if (dupes > 1) check = "This metric is listed more than once in the goals file. Keep one row.";
+      else if (col < 0) check = "No column with this name in the data file.";
+      else if (basis !== "total" && basis !== "average") check = "Choose a basis: Total or Average.";
+      else if (dir !== "higher is better" && dir !== "lower is better") check = "Choose a direction: Higher is better or Lower is better.";
+      else if (target === null) check = "Enter a number as the target.";
+      else if (target <= 0) check = "The target must be greater than zero.";
+      else if (norm(g.unit) === "percent" && target > 1) check = "Write percent targets as a percentage, for example 60% or 0.6.";
+      else if (tol > 1) check = "Write the tolerance as a percentage, for example 5%.";
+      else if (tol < 0) check = "The tolerance cannot be negative.";
+
+      var usable = 0, sum = 0, series = [];
+      if (col >= 0) {
+        var byDay = {};
+        d.rows.forEach(function (r) {
+          if (r.day < start || r.day > end) return;
+          var v = parseNum(r.cells[col]);
+          if (v === null) return;
+          usable++; sum += v;
+          byDay[r.day] = v;
+        });
+        for (var day = start; day <= end; day++) series.push({ day: day, v: byDay.hasOwnProperty(day) ? byDay[day] : null });
+      }
+      var validBasis = basis === "total" || basis === "average";
+      var actual = (usable > 0 && validBasis) ? (basis === "total" ? sum : sum / usable) : null;
+      var goal = (target !== null && target > 0 && validBasis) ? (basis === "total" ? target * n : target) : null;
+      var lower = dir === "lower is better";
+      var limit = goal === null ? null : (lower ? goal * (1 + tol) : goal * (1 - tol));
+
+      var status;
+      if (col < 0) status = "No data column";
+      else if (target === null || target <= 0) status = "No goal set";
+      else if (check) status = "Goal incomplete";
+      else if (usable === 0 || actual === null) status = "No data";
+      else if (usable !== n) status = "Incomplete data";
+      else if (lower) status = actual <= goal ? "On track" : (actual <= limit ? "At risk" : "Off track");
+      else status = actual >= goal ? "On track" : (actual >= limit ? "At risk" : "Off track");
+
+      var verdict = status === "On track" || status === "At risk" || status === "Off track";
+      var vs = "";
+      if (verdict) {
+        var diff = actual / goal - 1;
+        vs = Math.round(Math.abs(diff) * 100) === 0 ? "At goal"
+           : Math.round(Math.abs(diff) * 100) + "% " + (diff > 0 ? "above goal" : "below goal");
+      }
+      var band = "";
+      if (goal !== null && !check) {
+        band = lower
+          ? "On track at or below " + fmt(goal, g.unit) + ". At risk up to " + fmt(limit, g.unit) + ". Off track above that."
+          : "On track at or above " + fmt(goal, g.unit) + ". At risk down to " + fmt(limit, g.unit) + ". Off track below that.";
+      }
+      var note = "";
+      if (col >= 0 && usable < n) note = "Only " + usable + " of " + n + " days have usable data, so no status is given. Check the data file for missing days, blanks or text.";
+      else if (col >= 0 && usable > n) note = "The data file has duplicate dates, so no status is given.";
+      if (status === "Goal incomplete") note = (note ? note + " " : "") + "Goal problem: " + check + " Ask the goal owner to fix it in the goals file.";
+
+      return { status: status, actual: actual, goal: goal, limit: limit, vs: vs, band: band, note: note, check: check,
+               usable: usable, series: series, target: target, tol: tol, verdict: verdict };
+    }
+
+    function pageWarnings() {
+      var w = [], end = latestDay(), today = todayDay();
+      if (state.data.badDates > 0) w.push(state.data.badDates + " row(s) in the data file were skipped because the date could not be read.");
+      if (state.exportDay === null) w.push("No export date is recorded. Treat these results as unverified.");
+      else {
+        var age = today - state.exportDay;
+        if (age > 7) w.push("This data was exported " + age + " days ago. Ask the analyst for a fresh export before relying on it.");
+        if (age < 0) w.push("The export date is in the future. Check the export date.");
+        if (end > state.exportDay) w.push("The data includes dates after the recorded export date. Check the export date.");
+        else if (state.exportDay - end > 3) w.push("The newest day of data is " + (state.exportDay - end) + " days older than the export date. Recent days may be missing from the export.");
+      }
+      return w;
+    }
+
+    /* ---------- rendering ---------- */
+    function el(tag, text, cls) {
+      var e = document.createElement(tag);
+      if (text !== undefined && text !== null) e.textContent = text;
+      if (cls) e.className = cls;
+      return e;
+    }
+    function statusClass(s) {
+      return s === "On track" ? "s-on" : s === "At risk" ? "s-risk" : s === "Off track" ? "s-off" : "s-none";
+    }
+    function $(id) { return document.getElementById(id); }
+
+    function render() {
+      var n = Number($("period").value), periodLabel = $("period").selectedOptions[0].textContent.toLowerCase();
+      var end = latestDay();
+
+      $("sampleBanner").hidden = !(state.sampleData || state.sampleGoals);
+      $("sampleTitle").textContent = state.sampleData && state.sampleGoals ? "You are viewing sample data and sample goals."
+        : state.sampleData ? "You are viewing sample data with your goals." : "You are viewing your data with sample goals.";
+      $("asof").textContent = "Data as of " + fmtDay(end) +
+        (state.exportDay === null ? "" : "  |  Exported from GA4 on " + fmtDay(state.exportDay));
+
+      var w = pageWarnings(), box = $("warnings");
+      box.textContent = "";
+      box.hidden = w.length === 0;
+      if (w.length) {
+        box.appendChild(el("strong", "Warning"));
+        var ul = el("ul"); w.forEach(function (m) { ul.appendChild(el("li", m)); }); box.appendChild(ul);
+      }
+
+      var sel = $("metric"), g = state.goals[sel.selectedIndex] || state.goals[0];
+      var r = compute(g, n);
+      $("status").textContent = r.status;
+      $("statusBox").className = "stat status " + statusClass(r.status);
+      $("actual").textContent = r.actual === null ? "—" : fmt(r.actual, g.unit);
+      $("goal").textContent = r.goal === null ? "—" : fmt(r.goal, g.unit);
+      $("vsgoal").textContent = r.vs || "—";
+      $("band").textContent = r.band;
+      $("basis").textContent = "Goal basis: " + (g.basis || "not set") + " over the period.  Direction: " + (g.direction || "not set") + ".";
+      $("problem").textContent = r.note; $("problem").hidden = !r.note;
+      $("trend-h").textContent = "Daily trend: " + g.metric + ", " + periodLabel;
+      drawChart(r, g);
+
+      $("allCaption").textContent = "Status of every approved metric for the " + periodLabel + ".";
+      var body = $("allBody"); body.textContent = "";
+      state.goals.forEach(function (go) {
+        var x = compute(go, n), tr = el("tr");
+        tr.appendChild(el("th", go.metric)).setAttribute("scope", "row");
+        var td = el("td"); td.appendChild(el("span", x.status, "pill " + statusClass(x.status))); tr.appendChild(td);
+        tr.appendChild(el("td", x.actual === null ? "" : fmt(x.actual, go.unit), "num"));
+        tr.appendChild(el("td", x.goal === null ? "" : fmt(x.goal, go.unit), "num"));
+        tr.appendChild(el("td", x.vs, "num"));
+        tr.appendChild(el("td", (x.band + " " + x.note).trim()));
+        body.appendChild(tr);
+      });
+
+      var gb = $("goalsBody"); gb.textContent = "";
+      state.goals.forEach(function (go) {
+        var x = compute(go, n), tr = el("tr");
+        tr.appendChild(el("th", go.metric)).setAttribute("scope", "row");
+        tr.appendChild(el("td", go.basis)); tr.appendChild(el("td", go.direction));
+        tr.appendChild(el("td", x.target === null ? go.targetRaw : fmt(x.target, go.unit) + (norm(go.basis) === "total" ? " a day" : ""), "num"));
+        tr.appendChild(el("td", Math.round(x.tol * 1000) / 10 + "%", "num"));
+        tr.appendChild(el("td", go.owner)); tr.appendChild(el("td", go.reviewed)); tr.appendChild(el("td", go.reason));
+        tr.appendChild(el("td", x.check || "OK", x.check ? "check-bad" : ""));
+        gb.appendChild(tr);
+      });
+    }
+
+    function fillMetrics() {
+      var sel = $("metric"), keep = sel.value;
+      sel.textContent = "";
+      state.goals.forEach(function (g) { sel.appendChild(el("option", g.metric)); });
+      for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === keep) sel.selectedIndex = i;
+    }
+
+    function svg(tag, attrs, text) {
+      var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+    function drawChart(r, g) {
+      var c = $("chart"); c.textContent = "";
+      var pct = norm(g.unit) === "percent", k = pct ? 100 : 1;
+      var pts = r.series.filter(function (p) { return p.v !== null; });
+      var goalDaily = (r.target !== null && r.target > 0 && !r.check) ? r.target * k : null;
+      if (!pts.length) {
+        c.appendChild(svg("text", { x: 400, y: 155, "text-anchor": "middle", "font-size": 18, fill: "#4A4B4D" }, "No data to chart for this period."));
+        $("chartDesc").textContent = "No data to chart for this period.";
+        return;
+      }
+      var vals = pts.map(function (p) { return p.v * k; });
+      var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+      if (goalDaily !== null) { lo = Math.min(lo, goalDaily); hi = Math.max(hi, goalDaily); }
+      if (hi === lo) { hi += 1; lo -= 1; }
+      var pad = (hi - lo) * 0.1; lo -= pad; hi += pad;
+      var raw = (hi - lo) / 5, mag = Math.pow(10, Math.floor(Math.log10(raw))), step = mag;
+      [1, 2, 5, 10].some(function (m) { step = m * mag; return step >= raw; });
+      lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+      var L = 64, R = 16, T = 14, B = 34, W = 800 - L - R, H = 300 - T - B;
+      var d0 = r.series[0].day, d1 = r.series[r.series.length - 1].day, span = Math.max(1, d1 - d0);
+      function X(day) { return L + (day - d0) / span * W; }
+      function Y(v) { return T + (hi - v) / (hi - lo) * H; }
+      var dec = step < 1 ? 1 : 0;
+      for (var t = lo; t <= hi + step / 2; t += step) {
+        c.appendChild(svg("line", { x1: L, x2: L + W, y1: Y(t), y2: Y(t), stroke: "#E3E3E3", "stroke-width": 1 }));
+        c.appendChild(svg("text", { x: L - 8, y: Y(t) + 5, "text-anchor": "end", "font-size": 14, fill: "#1A1A1A" },
+          t.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (pct ? "%" : "")));
+      }
+      var ticks = Math.min(6, r.series.length - 1) || 1;
+      for (var i = 0; i <= ticks; i++) {
+        var day = d0 + Math.round(span * i / ticks);
+        c.appendChild(svg("text", { x: X(day), y: 300 - 10, "text-anchor": i === 0 ? "start" : i === ticks ? "end" : "middle", "font-size": 14, fill: "#1A1A1A" }, shortDay(day)));
+      }
+      c.appendChild(svg("line", { x1: L, x2: L + W, y1: T + H, y2: T + H, stroke: "#1A1A1A", "stroke-width": 1.5 }));
+      if (goalDaily !== null) c.appendChild(svg("line", { x1: L, x2: L + W, y1: Y(goalDaily), y2: Y(goalDaily), stroke: "#1A1A1A", "stroke-width": 2.5, "stroke-dasharray": "9 6" }));
+      var path = "", pen = false;
+      r.series.forEach(function (p) {
+        if (p.v === null) { pen = false; return; }
+        path += (pen ? "L" : "M") + X(p.day).toFixed(1) + " " + Y(p.v * k).toFixed(1) + " "; pen = true;
+      });
+      c.appendChild(svg("path", { d: path, fill: "none", stroke: "#B35200", "stroke-width": 3, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+      if (pts.length <= 31) pts.forEach(function (p) { c.appendChild(svg("circle", { cx: X(p.day), cy: Y(p.v * k), r: 3.5, fill: "#B35200" })); });
+
+      var min = pts.reduce(function (a, b) { return b.v < a.v ? b : a; }), max = pts.reduce(function (a, b) { return b.v > a.v ? b : a; });
+      $("chartDesc").textContent = "Solid orange line: daily actual. " + (goalDaily !== null ? "Dashed black line: daily goal of " + fmt(r.target, g.unit) + ". " : "") +
+        "Lowest day: " + fmt(min.v, g.unit) + " on " + shortDay(min.day) + ". Highest day: " + fmt(max.v, g.unit) + " on " + shortDay(max.day) + ".";
+    }
+
+    /* ---------- loading ---------- */
+    function showLoadError(msg) {
+      var b = $("loadError"); b.textContent = "";
+      b.hidden = !msg;
+      if (msg) { b.appendChild(el("strong", "That file could not be used.")); b.appendChild(el("span", msg.trim() + " The dashboard is still showing the previous data.")); }
+    }
+    function loadSample() {
+      var data = readData(SAMPLE_DATA_CSV);
+      var shift = (todayDay() - 1) - data.rows.reduce(function (m, r) { return Math.max(m, r.day); }, -Infinity);
+      data.rows.forEach(function (r) { r.day += shift; });   // keep the demo current: sample ends yesterday
+      state = { data: data, goals: readGoals(SAMPLE_GOALS_CSV), exportDay: todayDay(), sampleData: true, sampleGoals: true };
+      $("exportDate").value = ""; $("dataFile").value = ""; $("goalsFile").value = "";
+      showLoadError(""); fillMetrics(); render();
+    }
+    function readFile(input, handler) {
+      var f = input.files && input.files[0];
+      if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () {
+        try { handler(String(fr.result)); showLoadError(""); fillMetrics(); render(); }
+        catch (e) { input.value = ""; showLoadError(e.message + " "); }
+      };
+      fr.onerror = function () { showLoadError("The file could not be read. "); };
+      fr.readAsText(f);
+    }
+    function useData(text) {
+      var d = readData(text);
+      state.data = d; state.sampleData = false;
+      state.exportDay = parseDate($("exportDate").value);
+    }
+    function useGoals(text) { state.goals = readGoals(text); state.sampleGoals = false; }
+
+    $("metric").addEventListener("change", render);
+    $("period").addEventListener("change", render);
+    $("dataFile").addEventListener("change", function () { readFile(this, useData); });
+    $("goalsFile").addEventListener("change", function () { readFile(this, useGoals); });
+    $("exportDate").addEventListener("change", function () {
+      if (state.sampleData) return;
+      state.exportDay = parseDate(this.value); render();
+    });
+    $("resetBtn").addEventListener("click", loadSample);
+    loadSample();
+  </script>
+
+</body>
+</html>

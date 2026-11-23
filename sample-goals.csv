@@ -1,0 +1,7 @@
+Metric,Basis,Direction,Target,Tolerance,Unit,Owner,Last reviewed,Reason
+Sessions,Total,Higher is better,1400,5%,Number,Digital Marketing Director,2026-10-01,"Sample: business plan assumes 42,000 sessions a month."
+Key events,Total,Higher is better,48,10%,Number,Head of Sales,2026-10-01,"Sample: lead pipeline needs about 1,440 form completions a month."
+Engagement rate,Average,Higher is better,60%,5%,Percent,Content Lead,2026-10-01,Sample: content strategy goal for engaged visits.
+Session key event rate,Average,Higher is better,3.6%,10%,Percent,Head of Sales,2026-10-01,Sample: conversion rate needed to hit lead goal at planned traffic.
+Bounce rate,Average,Lower is better,40%,5%,Percent,Content Lead,2026-10-01,Sample: keep single-page exits under 40%.
+Average engagement time per session (sec),Average,Higher is better,70,5%,Seconds,Content Lead,2026-10-01,Sample: visitors should spend over a minute with content.
