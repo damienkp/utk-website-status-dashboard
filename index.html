@@ -155,7 +155,7 @@
     .check-ok { color: var(--on-ink); font-weight: 700; }
     .nowrap { white-space: nowrap; }
     th .reason { display: block; font-weight: 400; color: var(--muted); margin-top: .15rem; }
-    @media (min-width: 46.01rem) { #goalsBody th { width: 38%; min-width: 17rem; } }
+    @media (min-width: 46.01rem) { #goalsBody th { width: 30%; } }
     .scroll:focus-visible { outline-offset: 2px; }
 
     .note { color: var(--muted); font-size: 1rem; margin: 1rem 0 0; }
@@ -808,7 +808,7 @@ Average engagement time per session (sec),Average,Higher is better,70,5%,Seconds
         var x = compute(go, n), tr = el("tr");
         var head = rowHead(tr, go.metric);
         if (go.reason) head.appendChild(el("span", go.reason, "reason"));
-        cellFor(tr, "Basis", go.basis); cellFor(tr, "Direction", go.direction, "nowrap");
+        cellFor(tr, "Basis", go.basis); cellFor(tr, "Direction", go.direction);
         cellFor(tr, "Target", x.target === null ? go.targetRaw : fmt(x.target, go.unit) + (norm(go.basis) === "total" ? " a day" : ""), "num");
         cellFor(tr, "Tolerance", Math.round(x.tol * 1000) / 10 + "%", "num");
         var rev = parseDate(go.reviewed);
